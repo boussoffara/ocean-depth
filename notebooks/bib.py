@@ -39,10 +39,14 @@ def split(Xvars,Yvars):
 def applyToy(f,ytrains,yvals,ytest):
     return [f(y) for y in ytrains],[f(y) for y in yvals],f(ytest)
 def evaluate(y_pred,y_true):
-    return mean_squared_error(y_true,y_pred)
+    return np.sqrt(mean_squared_error(y_true,y_pred))
 
 def evaluateFull(y_pred,y_true):
-    return mean_squared_error(y_true,y_pred)
+    y_true=y_true.reshape(-1)
+    y_pred=y_pred.reshape(-1)
+    points=np.argsort(y_true)
+    return (np.sqrt(mean_squared_error(y_true[points[:124]],y_pred[points[:124]])),
+            np.sqrt(mean_squared_error(y_true[points[-124:]],y_pred[points[-124:]])))
 
 def validate(model,xtrains,ytrains,xvals,yvals):
     fold_evaluation=[]
@@ -52,7 +56,7 @@ def validate(model,xtrains,ytrains,xvals,yvals):
         fold_evaluation.append(evaluate(yp,yv))
     return np.mean(fold_evaluation),np.std(fold_evaluation)
 
-def plotYear(values,title="chlorophyll-a values Vertical profile for a single year"):
+def plotYear(values,title="chlorophyll-a values Vertical profile for a single year",c='gray',d=False):
     plt.figure(figsize=(17,73))
     plt.xlabel("Month")
     plt.ylabel("Depth")
@@ -61,7 +65,10 @@ def plotYear(values,title="chlorophyll-a values Vertical profile for a single ye
 
     ax.set_yticks(range(18))
     ax.set_yticklabels([ '%3.f' % (f) for f in depths][:17])
-    im=plt.imshow(values.T,cmap='gray')
+    if not d:
+        im=plt.imshow(values.T,cmap=c,vmin=0,vmax=1)
+    else:
+        im=plt.imshow(values.T,cmap=c,vmin=-0.5,vmax=0.5)
 
     ax.set_xticks(range(3,73,6))
     ax.set_xticklabels(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
@@ -92,5 +99,13 @@ def plotResult(values,title="chlorophyll-a values Vertical profile for a single 
     cax = divider.append_axes("right", size="5%", pad=0.05)
     plt.colorbar(im, cax=cax)
 
-
     plt.show()
+
+def climato(values,title='difference (to average climat)'):
+    lb = scipy.io.loadmat(dataPath +'VectLB19922008.mat')
+    labels = [k[0] for k in lb['labels'][0] ]
+    data=pd.DataFrame(lb['Vect'],columns=labels)
+    dataCenter=data[np.logical_and(np.logical_and(np.logical_and(data['latitude']<=33, data['latitude']>=31 ), data['longitude']>=-65 ), data['longitude']<=-63 )]
+    data=dataCenter[dataCenter['year']!=2008]
+    climat=data.groupby(data['5days']).mean().loc[:,['CHL '+ str(i) for i in range(2,19)]]
+    plotYear(values-climat,title=title,c='bwr',d=True)
