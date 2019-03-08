@@ -1,0 +1,9 @@
+https://people.eecs.berkeley.edu/~kjamieson/hyperband.html
+https://github.com/tobegit3hub/advisor
+https://github.com/sherpa-ai/sherpa
+https://github.com/autonomio/talos
+https://autokeras.com/start/
+https://github.com/joeddav/devol
+https://www.ml4aad.org/automl/
+https://www.ml4aad.org/automl/literature-on-neural-architecture-search/
+https://medium.com/@mikkokotila/a-comprehensive-list-of-hyperparameter-optimization-tuning-solutions-88e067f19d9
