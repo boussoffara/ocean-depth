@@ -150,6 +150,26 @@ def timeSplit(window,Xvars,Yvars,step=1,overlap=False):
 
     return xtrains,ytrains,xvals,yvals,xtest,ytest
 
+def rnnSplit(Xvars,Yvars):
+    train,val,test,depths=loadData()
+    xtrains=[]
+    ytrains=[]
+    xvals=[]
+    yvals=[]
+    xtest=test.loc[:,Xvars]
+    ytest=test.loc[:,Yvars]
+    
+    xt = train.loc[train['year']==1992,Xvars]
+    yt = train.loc[train['year']==1992,Yvars]
+    
+    for i in range(1993,2007):
+        xtrains.append(xt)
+        ytrains.append(yt)
+        xvals.append(val.loc[val['year']==i+1,Xvars])
+        yvals.append(val.loc[val['year']==i+1,Yvars])
+        xt = pd.concat([xt, train.loc[train['year']==i,Xvars]])
+        yt = pd.concat([yt, train.loc[train['year']==i,Yvars]])
+    return xtrains,ytrains,xvals,yvals,xtest,ytest
 
 def applyToy(f,ytrains,yvals,ytest):
     return [f(y) for y in ytrains],[f(y) for y in yvals],f(ytest)
