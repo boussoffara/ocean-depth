@@ -7,6 +7,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.special import erfinv
 from  tqdm import tqdm_notebook
 dataPath='../data/og/'
+#dataPath='/content/gdrive/My Drive/ocean-depth/data/og/'
 lb = scipy.io.loadmat(dataPath +'VectLB19922008.mat')
 depths=lb['depth']
 del lb
@@ -150,25 +151,52 @@ def timeSplit(window,Xvars,Yvars,step=1,overlap=False):
 
     return xtrains,ytrains,xvals,yvals,xtest,ytest
 
-def rnnSplit(Xvars,Yvars):
-    train,val,test,depths=loadData()
-    xtrains=[]
-    ytrains=[]
-    xvals=[]
-    yvals=[]
-    xtest=test.loc[:,Xvars]
-    ytest=test.loc[:,Yvars]
-    
-    xt = train.loc[train['year']==1992,Xvars]
-    yt = train.loc[train['year']==1992,Yvars]
-    
-    for i in range(1993,2007):
-        xtrains.append(xt)
-        ytrains.append(yt)
-        xvals.append(val.loc[val['year']==i+1,Xvars])
-        yvals.append(val.loc[val['year']==i+1,Yvars])
-        xt = pd.concat([xt, train.loc[train['year']==i,Xvars]])
-        yt = pd.concat([yt, train.loc[train['year']==i,Yvars]])
+def rnnSplit(window, Xvars,Yvars,step=1,overlap=False):
+
+    lb = scipy.io.loadmat(dataPath +'VectLB19922008.mat')
+    labels = [k[0] for k in lb['labels'][0] ]
+    data=pd.DataFrame(lb['Vect'],columns=labels)
+    data['time']= data['year']*100+(data['5days']-1)
+    data=data.sort_values('time')
+    times=np.sort(list(set(data['time'])))
+    pos=set([(k,c)for k,c in zip(data['longitude'].values,data['latitude'].values) ])
+
+    center=[-64.02191162109375, 33.759124755859375]
+    selectCenter=np.logical_and(data['longitude'].values==center[0],
+                    data['latitude'].values==center[1])
+    test=data.loc[np.logical_and(data['year']==2008,selectCenter),:]
+    xtest,ytest=serialise(test,window,Xvars,Yvars,step)
+
+    if overlap==False :
+        xtrains=[]
+        ytrains=[]
+        xvals=[]
+        yvals=[]
+
+        for j in tqdm_notebook(range(1992,2007)):
+            val=data.loc[np.logical_and(data['year']==j+1,selectCenter),:]
+            a,b=serialise(val,window,Xvars,Yvars,step)
+            xvals.append(a)
+            yvals.append(b)
+
+            for i,p in enumerate(pos):
+                selectP=np.logical_and(data['longitude'].values==p[0],
+                data['latitude'].values==p[1])
+         
+                tr=data.loc[np.logical_and(data['year']<=j,selectP),:]
+                
+                a,b=serialise(tr,window,Xvars,Yvars,step)
+
+                if(i==0):
+                    xi=a
+                    yi=b
+                else:
+                    xi=np.append(xi,a,axis=0)
+                    yi=np.append(yi,b,axis=0)
+
+            xtrains.append(np.array(xi))
+            ytrains.append(np.array(yi))
+
     return xtrains,ytrains,xvals,yvals,xtest,ytest
 
 def applyToy(f,ytrains,yvals,ytest):
